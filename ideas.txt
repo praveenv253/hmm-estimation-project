@@ -1,0 +1,19 @@
+- Fit spike trains of different frequencies.
+  + Parameters are amplitude, frequency, phase
+- Choose some frequencies for these spike trains and remove that component
+
+- Condense to 0/1 and try to pull out spike trains
+
+- Model with spikes that follow a poisson point process, and each spike sets off a burst (which is characterized somehow)
+  => Estimate spike rate (this is the exponential fit)
+  => Estimate parameters of the burst
+
+- Main problem is that it is very hard to do cross-validation for these kinds of models, because of insufficient data
+
+----
+
+What kinds of questions can you ask out of this dataset?
+
+=> Heavy usage periods 
+
+=> Burst properties (this is the exponential fit)

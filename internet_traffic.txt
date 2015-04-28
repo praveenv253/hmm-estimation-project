@@ -1,0 +1,32 @@
+Contributed by:
+Katrien De Cock
+K.U.Leuven, ESAT-SISTA
+Kardinaal Mercierlaan 94
+3001 Heverlee
+decock@esat.kuleuven.ac.be
+
+Description:  one hour of internet traffic between the Lawrence Berkeley Laboratory and the rest of the world
+
+Sampling:
+
+Number: 99999
+
+Inputs:
+
+Output: number of packets per  time unit
+
+References:
+
+Katrien De Cock and Bart De Moor, Identification of the first order parameters of a circulant modulated Poisson process. Accepted for publication in the proceedings of the International Conference on Telecommunication (ICT '98)
+
+V. Paxson and S. Floyd, Wide-area traffic: The failure of Poisson modeling, IEEE/ACM Transactions on Networking, 1995
+
+
+Properties:
+
+Columns:
+Column 1: time-steps
+Column 2: output y
+
+
+Category: Time series
