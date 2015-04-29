@@ -45,7 +45,7 @@ if __name__ == '__main__':
     # Load the dataset
     data = np.load('traffic-dataset.npy')
 
-    num_zeros = 1
+    num_zeros = 5
     arrivals = compute_arrivals(data[:, 1], num_zeros)
 
     # Plot the dataset and the computed arrival times
@@ -66,7 +66,9 @@ if __name__ == '__main__':
 
     interarrival_times = compute_interarrival_times(arrivals)
     lamda = mle_exponential_fit(interarrival_times)
+    print('Exponential fit: lamda = %f' % lamda)
     (k, alpha) = mle_pareto_fit(interarrival_times)
+    print('Pareto fit: (k, alpha) = (%f, %f)' % (k, alpha))
 
     # Plot histogram of inter-arrival times
     histbins = np.arange(interarrival_times.max() + 1)
