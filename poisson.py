@@ -22,7 +22,7 @@ def compute_arrivals(data, num_zeros=10):
 
 def compute_interarrival_times(arrivals):
     arrival_times = np.where(arrivals == 1)[0]
-    arrival_times = np.concatenate(([-1,], arrival_times))
+    arrival_times = np.concatenate(([0,], arrival_times))
     interarrival_times = arrival_times[1:] - arrival_times[:-1]
     return interarrival_times
 
