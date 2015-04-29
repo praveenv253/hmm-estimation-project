@@ -26,11 +26,27 @@ def compute_interarrival_times(arrivals):
     interarrival_times = arrival_times[1:] - arrival_times[:-1]
     return interarrival_times
 
+def mle_exponential_fit(interarrival_times):
+    lamda = 1 / np.mean(interarrival_times)
+    return lamda
+
+def mvub_exponential_fit(interarrival_times):
+    n = interarrival_times.size
+    lamda = (n - 1) / (n * np.mean(interarrival_times))
+    return lamda
+
+def mle_pareto_fit(interarrival_times):
+    n = interarrival_times.size
+    k = np.min(interarrival_times)
+    alpha = n / np.sum(np.log(interarrival_times / k))
+    return (k, alpha)
+
 if __name__ == '__main__':
     # Load the dataset
     data = np.load('traffic-dataset.npy')
 
-    arrivals = compute_arrivals(data[:, 1], 5)
+    num_zeros = 1
+    arrivals = compute_arrivals(data[:, 1], num_zeros)
 
     # Plot the dataset and the computed arrival times
     #plt.plot(data[:, 1])
@@ -49,8 +65,25 @@ if __name__ == '__main__':
     #plt.show()
 
     interarrival_times = compute_interarrival_times(arrivals)
+    lamda = mle_exponential_fit(interarrival_times)
+    (k, alpha) = mle_pareto_fit(interarrival_times)
 
     # Plot histogram of inter-arrival times
-    plt.hist(interarrival_times, bins=np.arange(interarrival_times.max() + 1))
-    plt.show()
+    histbins = np.arange(interarrival_times.max() + 1)
+    plt.hist(interarrival_times, bins=histbins, normed=True)
 
+    # Plot the exponential fit
+    x = (histbins[1:] + histbins[:-1]) / 2
+    plt.plot(x, lamda * np.exp(- lamda * x), 'r-', linewidth=2)
+
+    # Plot the pareto fit
+    x1 = x[num_zeros:]
+    plt.plot(x1, alpha * k**alpha / x1**(alpha+1), 'g-', linewidth=2)
+
+    plt.title('Histogram of inter-arrival times, with exp and pareto fits\n'
+              '(# zeros between bursts = %d)' % num_zeros)
+    plt.xlabel('Inter arrival time')
+    plt.ylabel('Probability')
+    plt.legend(('Exponential fit', 'Pareto fit'))
+
+    plt.show()
