@@ -59,6 +59,14 @@ def update(y, q, A, mu, alpha, beta, gamma, xi):
     A_new = xi.sum(axis=2) / gamma[:, :-1].sum(axis=1)
     mu_new = np.sum(gamma * y, axis=1) / gamma.sum(axis=1)
 
+    # Force some structure on A to prevent random transitions
+    A_new[0, 2] = 0
+    A_new[0, 3] = 0
+    A_new[1, 3] = 0
+    A_new[2, 0] = 0
+    A_new[3, 0] = 0
+    A_new[3, 1] = 0
+
     # Normalize everything for consistency
     q_new /= q_new.sum()
     A_new /= A_new.sum(axis=1)[:, None]
@@ -71,7 +79,11 @@ if __name__ == '__main__':
     y = data[data > 0]
 
     num_states = 4
-    A = np.ones((num_states, num_states)) / num_states
+    #A = np.ones((num_states, num_states)) / num_states
+    A = np.array([[0.5, 0.5, 0, 0],
+                  [0.3, 0.4, 0.3, 0],
+                  [0, 0.3, 0.4, 0.3],
+                  [0, 0, 0.5, 0.5]])
     q = np.ones(num_states) / num_states
     mu = np.array([1, 100, 1000, 10000], dtype=FLOAT)   # Need to change these
 
@@ -107,3 +119,11 @@ if __name__ == '__main__':
         print('mu')
         print(mu)
         print()
+
+    np.save('output/alpha.npy', alpha)
+    np.save('output/beta.npy', beta)
+    np.save('output/gamma.npy', gamma)
+    np.save('output/xi.npy', xi)
+    np.save('output/q.npy', q)
+    np.save('output/A.npy', A)
+    np.save('output/mu.npy', mu)
