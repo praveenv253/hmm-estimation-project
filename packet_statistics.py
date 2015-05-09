@@ -9,8 +9,8 @@ if __name__ == '__main__':
     data = np.load('traffic-dataset.npy')[:, 1]
 
     # Plot histogram of number of packets per time slot
-    #plt.hist(data)
-    #plt.show()
+    plt.hist(data)
+    plt.show()
 
     # There are a lot of time slots with zero packets
     print('Fraction of slots with zero packets: %f'
@@ -18,8 +18,8 @@ if __name__ == '__main__':
 
     # So exclude zero slots and look at the histogram of the rest of the slots
     nonzero_data = data[data != 0]
-    #plt.hist(nonzero_data)
-    #plt.show()
+    plt.hist(nonzero_data)
+    plt.show()
 
     # Use better binning
     bins = np.linspace(0, 5000, 200, endpoint=False)
@@ -52,4 +52,4 @@ if __name__ == '__main__':
     plt.xlabel('Number of packets')
     plt.ylabel('Frequency')
 
-    #plt.show()
+    plt.show()
