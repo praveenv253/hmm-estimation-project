@@ -59,6 +59,9 @@ def update(y, q, A, mu, alpha, beta, gamma, xi):
     A_new = xi.sum(axis=2) / gamma[:, :-1].sum(axis=1)
     mu_new = np.sum(gamma * y, axis=1) / gamma.sum(axis=1)
 
+    # Normalize everything for consistency
+    q_new /= q_new.sum()
+
     # Force some structure on A to prevent random transitions
     A_new[0, 2] = 0
     A_new[0, 3] = 0
@@ -67,9 +70,15 @@ def update(y, q, A, mu, alpha, beta, gamma, xi):
     A_new[3, 0] = 0
     A_new[3, 1] = 0
 
-    # Normalize everything for consistency
-    q_new /= q_new.sum()
+    # Normalize A to have a sum of 1 in each row
     A_new /= A_new.sum(axis=1)[:, None]
+
+    # Create a higher chance of remaining in the same state
+    A_new += np.eye(A_new.shape[0])
+
+    # Re-normalize A
+    A_new /= A_new.sum(axis=1)[:, None]
+
     return (q_new, A_new, mu_new)
 
 
@@ -86,6 +95,11 @@ if __name__ == '__main__':
                   [0, 0, 0.5, 0.5]])
     q = np.ones(num_states) / num_states
     mu = np.array([1, 100, 1000, 10000], dtype=FLOAT)   # Need to change these
+
+    # Save parameters for plotting
+    qs = [q, ]
+    As = [A, ]
+    mus = [mu, ]
 
     # Number of iterations of EM
     K = 10
@@ -120,10 +134,21 @@ if __name__ == '__main__':
         print(mu)
         print()
 
+        qs.append(q)
+        As.append(a)
+        mus.append(mu)
+
+    # Re-compute alpha, beta, gamma and xi with the newest estimate of the
+    # parameters
+    alpha = compute_alpha(y, q, A, mu)
+    beta = compute_beta(y, q, A, mu)
+    gamma = compute_gamma(alpha, beta)
+    xi = compute_xi(y, A, mu, alpha, beta)
+
     np.save('output/alpha.npy', alpha)
     np.save('output/beta.npy', beta)
     np.save('output/gamma.npy', gamma)
     np.save('output/xi.npy', xi)
-    np.save('output/q.npy', q)
-    np.save('output/A.npy', A)
-    np.save('output/mu.npy', mu)
+    np.save('output/q.npy', qs)
+    np.save('output/A.npy', As)
+    np.save('output/mu.npy', mus)
