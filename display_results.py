@@ -9,11 +9,14 @@ if __name__ == '__main__':
     y = data[nz_indices]
 
     gamma = np.load('output/gamma.npy')
-    mu = np.load('output/mu.npy')
+    mu = np.load('output/mu.npy')[-1]
 
     x = np.argmax(gamma, axis=0)                  # State
 
-    plt.plot(x)
+    plt.plot(np.arange(5000, 5100), x[5000:5100])
+    plt.title('State transitions')
+    plt.xlabel('Time slot')
+    plt.ylabel('State index (from 0 to 3)')
     plt.show()
 
     colors = ['b', 'g', 'y', 'r']
