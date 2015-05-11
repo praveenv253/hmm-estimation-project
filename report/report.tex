@@ -91,10 +91,10 @@ We start by computing the forward and backward probabilities. The forward probab
 
 These can be computed iteratively. If $b_i(y)$ is the probability of seeing the output $y$ in state $i$ (i.e.\ $b_i(y) = \frac{1}{y!} e^{-\mu_i} \mu_i^y$), then we have:
 \begin{align*}
-	\alpha_i(1) &= q_i b_i(y_1) & \forall &\; i \in {1, \ldots, N} \\
-	\alpha_j(t+1) &= b_i(y_{t+1}) \sum_{i=1}^{N} \alpha_i(t) A_{ij} & \forall &\; 1 < t \leq T \\
-	\beta_i(T) &= 1 & \forall &\; i \in {1, \ldots, N} \\
-	\beta_i(t) &= \sum_{i=1}^N A_{ij} b_j(t+1) \beta_j(t+1) & \forall &\; 1 \leq t < T
+	\alpha_i(1) &= q_i b_i(y_1) & \forall &\; i = 1, \ldots, N \\
+	\alpha_j(t+1) &= b_i(y_{t+1}) \sum_{i=1}^{N} \alpha_i(t) A_{ij} & \forall &\; t = 2, \ldots, T \\
+	\beta_i(T) &= 1 & \forall &\; i = 1, \ldots, N \\
+	\beta_i(t) &= \sum_{i=1}^N A_{ij} b_j(t+1) \beta_j(t+1) & \forall &\; t = 1, \ldots, T-1
 \end{align*}
 
 We then compute the intermediate variables: $\gamma_i(t)$, the probability of being in state $i$ at time $t$, given the observations $y_1, \ldots y_T$ and the HMM $\theta$, and $\xi_{ij}(t)$, the probability of transitioning from state $i$ to state $j$ in going from time step $t$ to $t+1$, given the observations and the HMM.
@@ -104,22 +104,32 @@ These are derived using Bayes' rule, as follows:
 	\gamma_i(t) &= \mathbb{P}(X_t = i | Y_1=y_1, \ldots, Y_T=y_T, \theta) \\
 	            &= \frac{\mathbb{P}(X_t = i, Y_1=y_1, \ldots, Y_T=y_T | \theta)}{\mathbb{P}(Y_1=y_1, \ldots, Y_T=y_T | \theta)} \\
 	            &= \frac{\mathbb{P}(X_t = i, Y_1=y_1, \ldots, Y_t=y_t | \theta) \mathbb{P}(Y_{t+1}=y_{t+1}, \ldots, Y_T=y_T | \theta)}{\mathbb{P}(Y_1=y_1, \ldots, Y_T=y_T | \theta)} \\
-	            &= \frac{\alpha_i(t) \beta_i(t)}{\sum_{j=0}^N \alpha_j(t) \beta_j(t)} \; \; \forall \; 1 \leq t \leq T
+	            &= \frac{\alpha_i(t) \beta_i(t)}{\sum_{j=0}^N \alpha_j(t) \beta_j(t)} \; \; \forall \; t = 1, \ldots, T
 \end{align*}
 where for the second-last step, we have relied on the Markov-ness of the Markov chain, which implies that the state of the Markov chain captures everything about the history of the process.
 
 A similar derivation for $\xi$ yields
 \begin{align*}
 	\xi_{ij}(t) &= \mathbb{P}(X_t=i, X_{t+1}=j | Y_1=y_1, \ldots, Y_T=y_T, \theta) \\
-	            &= \frac{\alpha_i(t) A_{ij} b_j(t) \beta_j(t+1)}{\sum_{k,l=1}^N \alpha_k(t) A_{kl} b_l(t) \beta_l(t+1)} \; \; \forall \; 1 \leq t < T
+	            &= \frac{\alpha_i(t) A_{ij} b_j(t) \beta_j(t+1)}{\sum_{k,l=1}^N \alpha_k(t) A_{kl} b_l(t) \beta_l(t+1)} \; \; \forall \; t = 1, \ldots, T-1
 \end{align*}
 
 We can then update the HMM parameters:
-
-
+\begin{align*}
+	\hat{q}_i &= \gamma_i(1) \\
+	\hat{ A}_{ij} &= \frac{\sum_{t=1}^{T-1} \xi_{ij}(t)}{\sum_{t=1}^{T-1} \gamma_i(t)} \\
+	\hat{\mu}_i &= \frac{\sum_{t=1}^T y_t \gamma_i(t)}{\sum_{t=1}^{T} \gamma_i(t)}
+\end{align*}
+These become the new set of parameters for the next iteration of the Baum-Welch algorithm.
 
 \section{Results}
 
 \subsection{Numerical difficulties}
+
+Several numerical difficulties were encountered due to the large packet counts in the data and due to the inherent nature of the Baum-Welch algorithm:
+\begin{enumerate}
+	\item \emph{Computation of $b_i(y)$}: The Poisson probability $b_i(y)$ could not be computed using the direct formula for the Poisson distribution, as $\mu_i^y$ and $y!$ were both very large quantities, since $y \sim 10^3$. Instead, we used $b_i(y) = \exp( -\mu_i + y \log(\mu_i) - \log(y!) )$, where $\log(y!)$ was computed using the \verb+gammaln+ special function.
+	\item \emph{Normalization of small values of $\alpha$ and $\beta$}: The Baum-Welch algorithm can yield very small values for $\alpha$ and $\beta$. Inability to express these quantities produces \verb+nan+s when computing $\gamma$ and $\xi$. Therefore, we normalize $\alpha$ and $\beta$ as suggested in~\cite{textbook}. Also, we move to using quadruple precision.
+\end{enumerate}
 
 \end{document}
