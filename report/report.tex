@@ -1,0 +1,125 @@
+\documentclass[11pt, twoside]{article}
+
+\oddsidemargin=0in
+\evensidemargin=0in
+\textwidth=6.3in
+\topmargin=-0.5in
+\textheight=9in
+
+\usepackage{amsmath, amsfonts}
+\usepackage{graphicx}
+\usepackage{epstopdf}
+\usepackage{subfigure}
+\usepackage{multicol}
+\usepackage{subfig}
+\usepackage{color}
+\usepackage{enumitem}
+\usepackage{float}     % Using this package along with the placement specifier
+                       % [H] makes figures appear at that exact position in the
+                       % file.
+\allowdisplaybreaks[4]
+
+\title{
+	18-752 Course project report\\
+	Internet Traffic Dataset: Hidden Markov Model
+}
+\author{
+	Praveen Venkatesh\\
+	Department of Electrical and Computer Engineering\\
+	\texttt{praveen1@andrew.cmu.edu}
+}
+
+\begin{document}
+
+\maketitle
+
+\section{The dataset and project goals}
+
+The internet traffic dataset that I used for this project was aquired from~\cite{Somebody}. It consists of one hour's worth of internet traffic between the Lawrence Berkeley laboratory and the rest of the world.
+
+This data has been previously used to show that internet traffic data is not Poisson, that it is very bursty, and needs more sophisticated models~\cite{theotherguy}.
+
+The goal of this project is to show that a simple Poisson model \emph{is} in fact a bad fit, and to find a better fit using a Hidden Markov Model.
+
+\section{Data histograms}
+
+\subsection{Non-Poisson data}
+
+A plot of the data reveals its extremely bursty nature.
+%TODO include figure of data
+
+To understand whether or not the data has some underlying structure, we look at histograms of the packet counts. The first such plot (not shown here) reveals that there is an extremely heavy concentration of packet numbers at the lower range of packet sizes. This is because in nearly 80\% of the time slots, there were no packets. Plotting the histogram in only non-zero time slots still reveals a heavy concentration towards lower packet sizes. In order to capture and depict the full range of packet sizes and their frequencies, multiple histograms were deemed required. These are shown below.
+%TODO include packet histograms
+
+It is very obvious from these histograms that the packet size distribution cannot be captured using a simple distribution, such as a Poisson distribution. A mixture model might be able to fit the data, however it will not capture any temporal variation of packet sizes over time. Hence, we use a Hidden Markov model that tries to capture both the packet-size distribution and its evolution over time.
+
+\subsection{Bursts and burst statistics}
+
+Packet sizes have been seen to be non-Poisson. Further, packet inter-arrival times are said not to follow a Poisson distribution. We do not have the capability to check whether or not packets arrived as a Poisson point process from the raw data, since it only has packet counts in discrete time slots. So to demonstrate, we aggregate packets into ``bursts''. A burst is defined by a set of packets that have at least a predefined \verb+num_zeros+ number of zeros before and after it.
+
+The start time of the burst is considered to be the burst arrival time. Using this, we compute burst inter-arrival times, for different values of \verb+num_zeros+.
+%TODO include histograms of burst inter-arrivals
+
+For small values of \verb+num_zeros+, the exponential fit becomes a poor one - it underestimates the distribution, especially at large inter-arrival times. This is a result of so-called ``long-range dependency'', which means that the decay of statistical dependence is slower than exponential. This is characteristic of internet traffic. The Pareto distribution (which is a heavy-tailed distribution, capable of capturing such long-range dependencies) is actually a better fit, as is evident on the log scale.
+%TODO show pareto fit on log-scale
+
+\section{The Hidden Markov Model}
+
+In a Hidden Markov Model, the assumption is that there is some underlying set of states that system moves between. In each state, the system output is determined by some state-dependent paramters. In our model, we assume that the system output is a Poisson random variable, with a state-dependent mean.
+
+The model is determined by three vector parameters - the initial probability distribution on the set of states (which decides which state the Markov chain starts in), the probability transition matrix (which decides the probabilities of transitioning from one state to another) and the parameters that decide the output at each state. We label these parameters as $\theta = (\underline{q}, A, \underline{\mu})$ respectively.
+
+There are several things that one can do with this kind of model~\cite{internettraffichmmmodelingpaper}:
+\begin{itemize}
+	\item \emph{Evaluation}: Given an HMM $\theta$, and a sequence of observations (outputs) $\{y_t\}$, we can compute the probability of seeing this set of outputs. This uses the so-called forward-backward algorithm to efficiently compute these values.
+	\item \emph{Reconstruction}: Given an HMM $\theta$ and a sequence of observations $\{y_t\}$, we can estimate the states $\{x_t\}$ that the system went through to give these outputs. This can be done using the Viterbi algorithm.
+	\item \emph{Learning}: Given an output sequence $\{y_t\}$, we can find the HMM $\theta$ that maximizes the likelihood of seeing this output. This uses a special case of the Expectation-Maximization algorith, called the Baum-Welch algorithm.
+\end{itemize}
+
+In this project, we take up all three tasks - learning an HMM model for the given dataset, which involves evaluation as a part of the algorithm. We also undertake reconstruction, but we use an intermediate step of the Baum-Welch algorithm to find the most likely states, given the output sequence and the current estimate of the chain.
+
+\subsection{Learning the HMM parameters}
+
+Learning the HMM parameters follows an iterative procedure. We first assume some initial HMM parameters, and compute the likelihood function. We then try to maximize the liekelihood function over the parameter space~\cite{pointprocesstextbook}. This effectively takes the form of the algorithm described below.
+
+We start by computing the forward and backward probabilities. The forward probability $\alpha_i(t)$ is the probability of arriving at the state $i$ at time $t$, and seeing observations $y_1$ to $y_t$ en route, given the HMM $\theta$. The backward probability $\beta_i(t)$ is the probability of seeing the future observations $y_{t+1}, \ldots, y_T$, given that you start in state $i$ at time $t$.
+
+\begin{align*}
+	\alpha_i(t) &= \mathbb{P}(Y_1=y_1, \ldots, Y_t=y_t, X_t=i | \theta) \\
+	\beta_i(t) &= \mathbb{P}(Y_{t+1}=y_{t+1}, \ldots, Y_T=y_T | X_t=i, \theta)
+\end{align*}
+
+These can be computed iteratively. If $b_i(y)$ is the probability of seeing the output $y$ in state $i$ (i.e.\ $b_i(y) = \frac{1}{y!} e^{-\mu_i} \mu_i^y$), then we have:
+\begin{align*}
+	\alpha_i(1) &= q_i b_i(y_1) & \forall &\; i \in {1, \ldots, N} \\
+	\alpha_j(t+1) &= b_i(y_{t+1}) \sum_{i=1}^{N} \alpha_i(t) A_{ij} & \forall &\; 1 < t \leq T \\
+	\beta_i(T) &= 1 & \forall &\; i \in {1, \ldots, N} \\
+	\beta_i(t) &= \sum_{i=1}^N A_{ij} b_j(t+1) \beta_j(t+1) & \forall &\; 1 \leq t < T
+\end{align*}
+
+We then compute the intermediate variables: $\gamma_i(t)$, the probability of being in state $i$ at time $t$, given the observations $y_1, \ldots y_T$ and the HMM $\theta$, and $\xi_{ij}(t)$, the probability of transitioning from state $i$ to state $j$ in going from time step $t$ to $t+1$, given the observations and the HMM.
+
+These are derived using Bayes' rule, as follows:
+\begin{align*}
+	\gamma_i(t) &= \mathbb{P}(X_t = i | Y_1=y_1, \ldots, Y_T=y_T, \theta) \\
+	            &= \frac{\mathbb{P}(X_t = i, Y_1=y_1, \ldots, Y_T=y_T | \theta)}{\mathbb{P}(Y_1=y_1, \ldots, Y_T=y_T | \theta)} \\
+	            &= \frac{\mathbb{P}(X_t = i, Y_1=y_1, \ldots, Y_t=y_t | \theta) \mathbb{P}(Y_{t+1}=y_{t+1}, \ldots, Y_T=y_T | \theta)}{\mathbb{P}(Y_1=y_1, \ldots, Y_T=y_T | \theta)} \\
+	            &= \frac{\alpha_i(t) \beta_i(t)}{\sum_{j=0}^N \alpha_j(t) \beta_j(t)} \; \; \forall \; 1 \leq t \leq T
+\end{align*}
+where for the second-last step, we have relied on the Markov-ness of the Markov chain, which implies that the state of the Markov chain captures everything about the history of the process.
+
+A similar derivation for $\xi$ yields
+\begin{align*}
+	\xi_{ij}(t) &= \mathbb{P}(X_t=i, X_{t+1}=j | Y_1=y_1, \ldots, Y_T=y_T, \theta) \\
+	            &= \frac{\alpha_i(t) A_{ij} b_j(t) \beta_j(t+1)}{\sum_{k,l=1}^N \alpha_k(t) A_{kl} b_l(t) \beta_l(t+1)} \; \; \forall \; 1 \leq t < T
+\end{align*}
+
+We can then update the HMM parameters:
+
+
+
+\section{Results}
+
+\subsection{Numerical difficulties}
+
+\end{document}
