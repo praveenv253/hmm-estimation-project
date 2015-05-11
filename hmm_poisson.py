@@ -135,7 +135,7 @@ if __name__ == '__main__':
         print()
 
         qs.append(q)
-        As.append(a)
+        As.append(A)
         mus.append(mu)
 
     # Re-compute alpha, beta, gamma and xi with the newest estimate of the
